@@ -3,12 +3,26 @@
 import { useEffect, useState } from "react";
 import mqtt from "mqtt";
 
+// Define the shape of our telemetry data for TypeScript
+interface TelemetryNode {
+  ip: string;
+  location: string;
+  position: {
+    top: string;
+    left: string;
+  };
+  temperature: number;
+  humidity: number;
+  rf_noise: number;
+  last_updated: string;
+}
+
 export default function Dashboard() {
-  const [nodes, setNodes] = useState({});
+  const [nodes, setNodes] = useState<Record<string, TelemetryNode>>({});
   const [connectionStatus, setConnectionStatus] = useState("Connecting...");
 
   // Function to convert GPS coordinates to CSS percentages for the map image
-  const calculateMapPosition = (lat, lon) => {
+  const calculateMapPosition = (lat: number, lon: number) => {
     // Bounding box for the standard India outline map
     const north = 37.6;
     const south = 8.4;
@@ -27,14 +41,23 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    const client = mqtt.connect("wss://broker.hivemq.com:8000/mqtt");
+    // Automatically detect if the site is running on HTTP (localhost) or HTTPS (Vercel)
+    const isSecure = typeof window !== "undefined" && window.location.protocol === "https:";
+    
+    // Choose the correct protocol and port based on the environment
+    const wsProtocol = isSecure ? "wss" : "ws";
+    const wsPort = isSecure ? "8884" : "8000";
+    const brokerUrl = `${wsProtocol}://broker.hivemq.com:${wsPort}/mqtt`;
+
+    // Connect dynamically
+    const client = mqtt.connect(brokerUrl);
 
     client.on("connect", () => {
       setConnectionStatus("Connected to Live Grid");
       client.subscribe("Pbtx/Grp_4/#"); 
     });
 
-    client.on("message", async (topic, message) => {
+    client.on("message", async (topic: string, message: any) => {
       try {
         const payload = JSON.parse(message.toString());
         
