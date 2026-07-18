@@ -239,7 +239,7 @@ export default function Dashboard() {
                   <h3 className="text-md font-bold text-white mb-3 font-mono">{node.id}</h3>
                   
                   <div className="bg-gray-900 border border-gray-950 p-3 md:p-6 rounded-xl shadow-inner mb-4">
-                    <div className="flex items-end h-32 md:h-48 gap-[1px] md:gap-[3px] flex-row pt-4">
+                    <div className="flex items-stretch h-32 md:h-48 gap-[1px] md:gap-[3px] flex-row pt-4">
                       {node.rf_data.map((value, idx) => (
                         <div key={idx} className="flex-1 flex flex-col justify-end group/bar relative">
                           <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 bg-blue-600 text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover/bar:opacity-100 pointer-events-none transition-opacity duration-150 z-10 whitespace-nowrap hidden sm:block">
