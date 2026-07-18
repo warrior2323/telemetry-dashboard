@@ -23,8 +23,8 @@ export default function Dashboard() {
   const [nodes, setNodes] = useState<Record<string, TelemetryNode>>({});
   const [connectionStatus, setConnectionStatus] = useState("Connecting...");
   
-  // Update state to handle an array of active nodes for the modal
-  const [activeNodes, setActiveNodes] = useState<(TelemetryNode & { id: string })[] | null>(null);
+  // FIXED: Instead of storing a frozen snapshot of the data, we just store the ID (group key)
+  const [activeGroupKey, setActiveGroupKey] = useState<string | null>(null);
 
   const calculateMapPosition = (lat: number, lon: number) => {
     const north = 38.5;
@@ -108,10 +108,8 @@ export default function Dashboard() {
     };
   }, []);
 
-  // 1. Group nodes by exact coordinate positions
   const groupedNodes = Object.keys(nodes).reduce((acc, nodeId) => {
     const node = nodes[nodeId];
-    // Create a unique string key based on CSS percentages
     const groupKey = `${node.position.top}-${node.position.left}`;
     
     if (!acc[groupKey]) {
@@ -120,6 +118,9 @@ export default function Dashboard() {
     acc[groupKey].push({ id: nodeId, ...node });
     return acc;
   }, {} as Record<string, (TelemetryNode & { id: string })[]>);
+
+  // Helper variable to fetch the live data for the currently open modal
+  const liveModalData = activeGroupKey ? groupedNodes[activeGroupKey] : null;
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-4 md:p-8 font-sans select-none overflow-x-hidden">
@@ -139,18 +140,17 @@ export default function Dashboard() {
           className="absolute inset-0 w-full h-full object-contain opacity-50 p-2 md:p-4 pointer-events-none"
         />
 
-        {/* 2. Map over the clustered groups instead of individual nodes */}
         {Object.entries(groupedNodes).map(([groupKey, group]) => {
-          const primaryNode = group[0]; // Use the first node in the array for CSS positioning
+          const primaryNode = group[0]; 
 
           return (
             <div 
               key={groupKey} 
               className="absolute group cursor-pointer z-20"
               style={{ top: primaryNode.position.top, left: primaryNode.position.left, transform: "translate(-50%, -100%)" }}
-              onClick={() => setActiveNodes(group)}
+              // FIXED: Set the string key, not the frozen array
+              onClick={() => setActiveGroupKey(groupKey)}
             >
-              {/* Optional UI enhancement: Badge showing cluster size if overlapping */}
               {group.length > 1 && (
                 <div className="absolute -top-2 -right-2 bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full z-10 shadow-lg">
                   {group.length}
@@ -166,7 +166,6 @@ export default function Dashboard() {
                 <path fillRule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
               </svg>
 
-              {/* 3. Flex-row Tooltip Container for side-by-side rendering */}
               <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-30 hidden sm:flex flex-row gap-3">
                 {group.map((node) => {
                   const peakNoise = node.rf_data.length > 0 ? Math.max(...node.rf_data) : 0;
@@ -202,27 +201,26 @@ export default function Dashboard() {
         })}
       </div>
 
-      {/* FULL CROWD HISTOGRAM ANALYSIS MODAL */}
-      {activeNodes && activeNodes.length > 0 && (
+      {/* FIXED: The modal now maps over the dynamically updating liveModalData */}
+      {liveModalData && liveModalData.length > 0 && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 transition-all duration-300">
           <div className="bg-gray-800 border border-gray-700 p-4 md:p-6 rounded-2xl max-w-5xl w-full shadow-2xl transform scale-100 max-h-[95vh] overflow-y-auto">
             
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-700 pb-4 mb-4 md:mb-6 gap-3 sm:gap-0 sticky top-0 bg-gray-800 z-10">
               <div>
                 <h2 className="text-lg md:text-2xl font-bold text-blue-400">RF Channel Crowd Analysis</h2>
-                <p className="text-[10px] md:text-xs text-gray-400 mt-1">Viewing telemetry for <span className="text-white">{activeNodes.length}</span> node(s) at this location.</p>
+                <p className="text-[10px] md:text-xs text-gray-400 mt-1">Viewing telemetry for <span className="text-white">{liveModalData.length}</span> node(s) at this location.</p>
               </div>
               <button 
-                onClick={() => setActiveNodes(null)} 
+                onClick={() => setActiveGroupKey(null)} 
                 className="w-full sm:w-auto bg-gray-700 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-xl transition-colors duration-200 text-sm md:text-base"
               >
                 Close View
               </button>
             </div>
 
-            {/* 4. Map the histograms vertically to avoid UI crushing on smaller screens */}
             <div className="flex flex-col gap-8">
-              {activeNodes.map((node) => (
+              {liveModalData.map((node) => (
                 <div key={node.id} className="border border-gray-700/50 p-4 rounded-xl bg-gray-800/50">
                   <h3 className="text-md font-bold text-white mb-3 font-mono">{node.id}</h3>
                   
