@@ -72,29 +72,17 @@ export default function Dashboard() {
         const payload = JSON.parse(decryptedText);
         
         if (payload.node_id) {
-          let lat = 20.5937;
-          let lon = 78.9629;
-          let locationName = "Unknown";
-          let position = { top: "50%", left: "50%" };
+          // Hardcoded to Kharagpur, WB
+          let lat = 22.3302;
+          let lon = 87.3237;
+          let locationName = "Kharagpur, West Bengal";
+          let position = calculateMapPosition(lat, lon);
 
           if (payload.lat && payload.lon) {
             lat = payload.lat;
             lon = payload.lon;
-            locationName = "Kharagpur, West Bengal";
+            locationName = "Precise GPS Location";
             position = calculateMapPosition(lat, lon);
-          } else if (payload.ip_address && payload.ip_address !== "Unknown") {
-            try {
-              const geoResponse = await fetch(`/api/geoip?ip=${payload.ip_address}`);
-              const geoData = await geoResponse.json();
-              if (geoData.status === "success") {
-                lat = geoData.lat;
-                lon = geoData.lon;
-                locationName = `${geoData.city}, ${geoData.regionName}`;
-                position = calculateMapPosition(lat, lon);
-              }
-            } catch (err) {
-              console.error("Geolocation fetch failed:", err);
-            }
           }
 
           setNodes((prevNodes) => ({
